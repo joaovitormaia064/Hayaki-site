@@ -29,7 +29,9 @@ export function ContatoRapido() {
 
   function abrirMailto(dados: Record<string, string>) {
     const assunto = `Contato pelo site — ${dados.nome}`;
-    const corpo = `Nome: ${dados.nome}\nE-mail: ${dados.email}\n\n${dados.mensagem}`;
+    // Lê como uma mensagem de verdade, não como um despejo de campos de
+    // formulário — mesmo espírito da mensagem pronta do WhatsApp.
+    const corpo = `Olá! Me chamo ${dados.nome} e vim pelo site da Hayaki.\n\n${dados.mensagem}\n\nPode me responder por aqui: ${dados.email}`;
     window.location.href = `mailto:${EMAIL}?subject=${encodeURIComponent(
       assunto
     )}&body=${encodeURIComponent(corpo)}`;
