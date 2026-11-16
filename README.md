@@ -49,3 +49,12 @@ avaliada: Sora (display) + Manrope (corpo).
 
 Next.js (App Router) · React · TypeScript · Tailwind CSS v4 · Framer Motion ·
 lucide-react
+
+## Corrida Turbo (jogo de kart)
+
+Jogo de kart original em `public/kart/`, servido em `/kart/index.html`. É estático (Three.js e PeerJS
+estão em `public/kart/vendor/`) e não depende do restante do site.
+
+- Solo, tela dividida para 2 no mesmo teclado, ou sala online com até 8 jogadores (código de 4 letras).
+- O modo online é ponto a ponto via WebRTC, usando o servidor público de sinalização do PeerJS.
+- `?net=bc&sala=TEST` troca a rede por `BroadcastChannel` para testar o netcode entre abas, sem internet.

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Corrida Turbo</title>
+<style>
+  :root { --ink:#10131c; --panel:#1b2030; --line:#2e3650; --text:#eef1f8; --dim:#9aa3bd; --hot:#ffb020; --go:#35d07f; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--ink); color:var(--text); overflow:hidden;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; user-select:none; -webkit-user-select:none; touch-action:none; }
+  canvas#view { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .screen { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:16px; overflow:auto;
+    background: radial-gradient(1200px 600px at 50% -10%, #2a3560 0%, #10131c 70%); z-index:20; }
+  .screen.on { display:flex; }
+  .card { width:min(560px,100%); background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:24px; }
+  h1 { margin:0 0 4px; font-size:40px; letter-spacing:-1px; font-style:italic; font-weight:900; }
+  h1 span { color:var(--hot); }
+  h2 { margin:0 0 12px; font-size:22px; }
+  p.sub { margin:0 0 20px; color:var(--dim); }
+  label { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:14px 0 6px; }
+  input[type=text], select { width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line); background:#121624; color:var(--text); font-size:16px; }
+  button { cursor:pointer; border:0; border-radius:10px; padding:12px 16px; font-size:16px; font-weight:700; color:#10131c; background:var(--hot); }
+  button.alt { background:#2b3350; color:var(--text); }
+  button.go { background:var(--go); }
+  button:disabled { opacity:.45; cursor:default; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > * { flex:1 1 140px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
+  .colors { display:flex; gap:8px; flex-wrap:wrap; }
+  .colors i { width:34px; height:34px; border-radius:50%; border:3px solid transparent; cursor:pointer; }
+  .colors i.sel { border-color:#fff; }
+  .err { color:#ff7a7a; min-height:20px; margin-top:10px; font-size:14px; }
+  .code { font-size:34px; font-weight:900; letter-spacing:.2em; color:var(--hot); }
+  ul.players { list-style:none; margin:8px 0 0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  ul.players li { background:#121624; border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:8px; font-weight:600; }
+  ul.players li i { width:14px; height:14px; border-radius:50%; flex:none; }
+  .keys { font-size:13px; color:var(--dim); line-height:1.6; margin-top:16px; }
+  .keys b { color:var(--text); }
+  small.link { display:block; color:var(--dim); margin-top:6px; word-break:break-all; user-select:text; -webkit-user-select:text; }
+
+  #huds { position:fixed; inset:0; pointer-events:none; z-index:5; display:none; }
+  .hud { position:absolute; left:0; right:0; overflow:hidden; text-shadow:0 2px 0 rgba(0,0,0,.55); font-weight:900; font-style:italic; }
+  .hud .pos { position:absolute; left:18px; bottom:10px; font-size:64px; line-height:1; }
+  .hud .pos small { font-size:26px; }
+  .hud .lap { position:absolute; right:18px; top:12px; font-size:22px; }
+  .hud .spd { position:absolute; right:18px; bottom:14px; font-size:20px; color:#dfe6ff; }
+  #huds.split .hud .lap, #huds.split .hud .spd { right:176px; }
+  .hud .item { position:absolute; left:18px; top:12px; width:74px; height:74px; border-radius:16px; background:rgba(10,14,26,.6);
+    border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:40px; font-style:normal; text-shadow:none; }
+  .hud .item b { position:absolute; right:4px; bottom:0; font-size:16px; }
+  .hud .msg { position:absolute; left:0; right:0; top:28%; text-align:center; font-size:54px; color:var(--hot); }
+  .hud .warn { position:absolute; left:0; right:0; top:14%; text-align:center; font-size:26px; color:#ff6b6b; }
+  #clock { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:6; font-weight:800; font-size:20px; font-variant-numeric:tabular-nums; text-shadow:0 2px 0 rgba(0,0,0,.55); display:none; }
+  #mini { position:fixed; right:12px; top:50%; transform:translateY(-50%); z-index:6; width:150px; height:150px; display:none; opacity:.92; }
+  #results { position:fixed; inset:0; z-index:15; display:none; align-items:center; justify-content:center; background:rgba(8,10,18,.72); padding:16px; }
+  #results.on { display:flex; }
+  #results ol { margin:0 0 16px; padding:0; list-style:none; }
+  #results li { display:flex; gap:10px; align-items:center; padding:7px 10px; border-radius:8px; font-weight:700; }
+  #results li:nth-child(odd) { background:#121624; }
+  #results li.me { outline:2px solid var(--hot); }
+  #results li span.t { margin-left:auto; color:var(--dim); font-variant-numeric:tabular-nums; }
+  #results li i { width:14px; height:14px; border-radius:50%; }
+  #touch { position:fixed; inset:0; z-index:8; pointer-events:none; display:none; }
+  #touch button { position:absolute; pointer-events:auto; width:78px; height:78px; border-radius:50%; background:rgba(255,255,255,.22); color:#fff; font-size:26px; border:2px solid rgba(255,255,255,.5); padding:0; }
+  #tL { left:14px; bottom:22px; } #tR { left:106px; bottom:22px; }
+  #tD { right:14px; bottom:22px; } #tI { right:106px; bottom:22px; } #tB { right:60px; bottom:110px; width:60px!important; height:60px!important; font-size:16px!important; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="huds"></div>
+<div id="clock">0:00.000</div>
+<canvas id="mini" width="300" height="300"></canvas>
+<div id="touch">
+  <button id="tL">◀</button><button id="tR">▶</button>
+  <button id="tI">★</button><button id="tD">⤿</button><button id="tB">ré</button>
+</div>
+
+<div id="menu" class="screen on">
+  <div class="card">
+    <h1>Corrida <span>Turbo</span></h1>
+    <p class="sub">Kart com derrapagem, mini-turbo, itens e até 8 corredores.</p>
+    <label for="name">Seu nome</label>
+    <input id="name" type="text" maxlength="12" placeholder="Piloto">
+    <label>Cor do kart</label>
+    <div class="colors" id="colors"></div>
+    <div class="grid2">
+      <button id="bSolo">Jogar sozinho</button>
+      <button id="bSplit" class="alt">Tela dividida (2)</button>
+      <button id="bHost" class="go">Criar sala online</button>
+      <div class="row" style="gap:6px">
+        <input id="code" type="text" maxlength="4" placeholder="CÓDIGO" style="text-transform:uppercase;flex:1 1 80px">
+        <button id="bJoin" class="alt" style="flex:1 1 70px">Entrar</button>
+      </div>
+    </div>
+    <div class="err" id="menuErr"></div>
+    <div class="keys">
+      <b>Acelerar</b> W / ↑ · <b>Frear/ré</b> S / ↓ · <b>Virar</b> A D / ← → · <b>Derrapar</b> Espaço ou Shift (segure na curva e solte para o mini-turbo) · <b>Item</b> E ou Enter · <b>Reposicionar</b> R<br>
+      Tela dividida: jogador 1 usa WASD + Shift esq. + E; jogador 2 usa setas + Shift dir. + Enter. Controles (gamepad) também funcionam.
+    </div>
+  </div>
+</div>
+
+<div id="lobby" class="screen">
+  <div class="card">
+    <h2 id="lobbyTitle">Sala</h2>
+    <div id="roomBox" style="display:none">
+      <div class="code" id="roomCode"></div>
+      <small class="link" id="roomLink"></small>
+    </div>
+    <label>Corredores</label>
+    <ul class="players" id="plist"></ul>
+    <div class="row">
+      <div><label for="selTrack">Pista</label><select id="selTrack"></select></div>
+      <div><label for="selLaps">Voltas</label><select id="selLaps"><option>1</option><option>2</option><option selected>3</option><option>5</option></select></div>
+    </div>
+    <div class="row">
+      <div><label for="selCC">Velocidade</label><select id="selCC"><option value="0.82">Tranquila</option><option value="1" selected>Normal</option><option value="1.2">Insana</option></select></div>
+      <div><label for="selBots">Completar com robôs até</label><select id="selBots"><option value="0">Sem robôs</option><option value="4">4 corredores</option><option value="6">6 corredores</option><option value="8" selected>8 corredores</option></select></div>
+    </div>
+    <div class="grid2">
+      <button id="bLeave" class="alt">Sair</button>
+      <button id="bStart" class="go">Começar corrida</button>
+    </div>
+    <div class="err" id="lobbyMsg"></div>
+  </div>
+</div>
+
+<div id="results">
+  <div class="card">
+    <h2>Resultado</h2>
+    <ol id="resList"></ol>
+    <div class="grid2">
+      <button id="bQuit" class="alt">Sair</button>
+      <button id="bAgain" class="go">Voltar à sala</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/peerjs.min.js"></script>
+<script type="module" src="game.js"></script>
+</body>
+</html>
